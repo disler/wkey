@@ -1,10 +1,72 @@
+<title>wkey</title>
+<link rel="icon" href="img/favicon-256x256.png" type="image/x-icon">
+
+<div class="ui-wrapper">
+  <p>Red :</p>
+  <input id="red-offset" class="small-input" title="The [color] offset of each block." type="input" value="126" maxlength="3">
+  <input id="red-randomness" class="small-input" title="The [color] maxmimum randomness from the offset (+/-)." type="input" value="46" maxlength="3">
+  <p>Green :</p>
+  <input id="green-offset" class="small-input" title="The [color] offset of each block." type="input" value="126" maxlength="3">
+  <input id="green-randomness" class="small-input" title="The [color] maxmimum randomness from the offset (+/-)." type="input" value="46" maxlength="3">
+  <p>Blue :</p>
+  <input id="blue-offset" class="small-input" title="The [color] offset of each block." type="input" value="126" maxlength="3">
+  <input id="blue-randomness" class="small-input" title="The [color] maxmimum randomness from the offset (+/-)." type="input" value="46" maxlength="3">
+
+  <span class="divider"></span>
+
+  <input id="rerender-cb" type="checkbox">
+  <p>Rerender</p>
+  <button id="hide" title="Click anywhere on the canvas to re-enable visibility of the UI.">Hide UI</button>
+  <button id="generate">Generate</button>
+</div>
+
 <div class="wrapper">
 	<canvas></canvas>
 </div>
+
 <style>
+  /* Global */
 	html, body {
 		margin: 0;
 	}
+  body {
+    font-size: 14px;
+    font-family: 'Arial';
+  }
+
+  /* Misc */
+  .divider {
+    margin: 0 10px;
+    width: 0px;
+    height: 30px;
+    border-right: 1px solid rgba(0, 0, 0, 0.3);
+  }
+
+
+  /* User-interface */
+  .ui-wrapper {
+    padding: 5px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    background: rgba(255, 255, 255, 0.8);
+  }
+  .ui-wrapper p {
+    display: inline;
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+    /* text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); */
+  }
+  .ui-wrapper .small-input {
+    width: 40px;
+    opacity: 0.7;
+    text-align: center;
+  }
+
+
+  /* Canvas */
 	.wrapper {
 		width:100vw;
 		height: 100vh;
