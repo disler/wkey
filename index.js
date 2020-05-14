@@ -1,10 +1,10 @@
 /**
  * index.js
  * Populates the canvas element with dynamic 2d content.
- * 
+ *
  * @see
  *  https://dma.hamline.edu/~risler01/tools/generate/
- * 
+ *
  * @todo
  *  [ ] Dropdown that changes mode
  *  [ ] Rotation
@@ -13,18 +13,19 @@
  *  [ ] Other features from generate.fla (randomize-all, unfiltered(?), offset XY, Draw, Grayscale)
  */
 
-let cx = document.querySelector("canvas").getContext("2d");
+let ctx = document.querySelector("canvas").getContext("2d");
 let wrapper = document.querySelector(".wrapper")
 
-cx.canvas.height = wrapper.scrollHeight;
-cx.canvas.width = wrapper.scrollWidth;
+ctx.canvas.height = wrapper.scrollHeight;
+ctx.canvas.width = wrapper.scrollWidth;
 
-// console.log(`cx`, cx)
+//
+const COLOR_MAX = 256
 
 var settings = {
 
-  // Sets the behavior of the generation. This is the 'choose function' setting 
-  // in the generate.fla: Choose Function, Randomize, Unfiltered, Randomize All, 
+  // Sets the behavior of the generation. This is the 'choose function' setting
+  // in the generate.fla: Choose Function, Randomize, Unfiltered, Randomize All,
   // Offset XY, Draw, Grayscale
   // OPTIONS: 'DEFAULT' (completely random), 'FROM-UI' (based on UI values)
   mode: 'FROM-UI',
@@ -34,25 +35,30 @@ var settings = {
   greenValue: 126,
   blueValue: 126,
   alphaValue: 1.0, // TODO: Put into the UI
-  redMaxRandomness: 46,
-  greenMaxRandomness: 46,
-  blueMaxRandomness: 46,
+  redMaxRandomness: 0,
+  greenMaxRandomness: 0,
+  blueMaxRandomness: 0,
   alphaMaxRandomness: 0, // TODO: Put into the UI
 
-  // Rotation randomness appliable to each box
-  rotationMaxRandomness: 0, // TODO: Implement
+  rotation: {
+	  // Rotation randomness appliable to each box
+	  rotationMaxRandomness: 0, // TODO: Implement
 
-  // WIDTH/HEIGHT variation appliable to each box
-  sizeMaxRandomness: 0, // TODO: Implement
+	},
 
-  blocksPerRow: 50,
+	// WIDTH/HEIGHT variation appliable to each box
+	sizeMaxRandomness: 0, // TODO: Implement
 
-  // Animate the screen (true/false)
-  rerenderBlocks: false,
+	blocksPerRow: 50,
 
-  // Interval in miliseconds to update screen (animation)
-  rerenderBlocksInterval: 1000
+	// Animate the screen (true/false)
+	rerenderBlocks: true,
 
+	// Interval in miliseconds to update screen (animation)
+	rerenderBlocksInterval: 1000,
+
+	// if we should automatically randomize if rerendreBlocks is true
+	autoRandomize: false,
 }
 
 // global value from setInterval for when interval will be changed by user (todo).
@@ -93,29 +99,28 @@ function getsettingsRandomColor() {
 
 /**
  * Creates and places a new block in the canvas element and colors it.
- * 
+ *
  * @param {String} color Hex value for block fill color
  * @param {Number} x X coordinate of block
  * @param {Number} y Y coordinate of block
  * @param {Number} width Width of the block
  * @param {Number} height Height of the block
  */
-function createBlock(color, x, y, width, height) {
-	cx.fillStyle = color
-	cx.fillRect(x, y, width, height)
-}
+function createBlock(color, x, y, width, height, extraParams) {
 
-/**
- * Create a bezier curve and add it to the canvas
- */
-function createCurve() {
-	cx.beginPath();
-	cx.moveTo(10, 90);
-	cx.bezierCurveTo(10, 10, 90, 10, 50, 90);
-	cx.lineTo(90, 10);
-	cx.lineTo(10, 10);
-	cx.closePath();
-	cx.stroke();
+	const {rotationMaxRandomness} = extraParams
+
+	ctx.save()
+
+	if (rotationMaxRandomness) {
+		ctx.rotate(random(rotationMaxRandomness) * (Math.PI / 180))
+	}
+
+	ctx.fillStyle = color
+	ctx.fillRect(x, y, width, height)
+
+	// draw your object
+	ctx.restore();
 }
 
 /**
@@ -124,28 +129,44 @@ function createCurve() {
  */
 function setup() {
 
-	const blockHeight = cx.canvas.height / settings.blocksPerRow
-	const blockWidth = cx.canvas.width / settings.blocksPerRow
-	const totalRows = cx.canvas.height / blockHeight
-	const totalColumns = cx.canvas.width / blockWidth
+	const blockHeight = ctx.canvas.height / settings.blocksPerRow
+	const blockWidth = ctx.canvas.width / settings.blocksPerRow
+	const totalRows = ctx.canvas.height / blockHeight
+	const totalColumns = ctx.canvas.width / blockWidth
+
+	const rotationMaxRandomness = settings.rotation.rotationMaxRandomness
+
 
 	return {
 		blockHeight,
 		blockWidth,
 		totalRows,
 		totalColumns,
+
+		rotationMaxRandomness,
 	}
 }
 
 /**
  * Generate the full canvas area full of blocks.
- * 
- * @param {Number} blockHeight Height of the block
- * @param {Number} blockWidth Width of the block
- * @param {Number} totalRows Total number of blocks across the x-axis
- * @param {Number} totalColumns Total number of blocks across the y-axis
+ * @param {Object} params - generation parameters
+ * @param {Number} params.blockHeight Height of the block
+ * @param {Number} params.blockWidth Width of the block
+ * @param {Number} params.totalRows Total number of blocks across the x-axis
+ * @param {Number} params.totalColumns Total number of blocks across the y-axis
  */
-function generate(blockHeight, blockWidth, totalRows, totalColumns) {
+function generate(params) {
+	const {
+		blockHeight,
+		blockWidth,
+		totalRows,
+		totalColumns,
+	} = params
+
+	console.assert(blockHeight && blockWidth && totalRows && totalColumns, `missing required params`)
+
+
+
 	for (let i = 0; i < totalColumns; i++) {
 
 		const x = i * blockWidth
@@ -155,41 +176,56 @@ function generate(blockHeight, blockWidth, totalRows, totalColumns) {
 			const y = j * blockHeight
 
       if(settings.mode == 'DEFAULT') {
-        createBlock(getRandomColor(), x, y, blockWidth, blockHeight)
+        createBlock(getRandomColor(), x, y, blockWidth, blockHeight, params)
       } else if(settings.mode == 'FROM-UI') {
-        createBlock(getsettingsRandomColor(), x, y, blockWidth, blockHeight)
+        createBlock(getsettingsRandomColor(), x, y, blockWidth, blockHeight, params)
       }
 
 		}
 	}
 }
 
+/**
+ * Applys scripting state to ui
+ */
+function applyScriptState() {
+	document.querySelector('#red-offset').value = settings.redValue
+	document.querySelector('#red-randomness').value = settings.redMaxRandomness
+	document.querySelector('#green-offset').value = settings.greenValue
+	document.querySelector('#green-randomness').value = settings.greenMaxRandomness
+	document.querySelector('#blue-offset').value = settings.blueValue
+	document.querySelector('#blue-randomness').value = settings.blueMaxRandomness
+	document.querySelector('#rerender-cb').checked = settings.rerenderBlocks
+	document.querySelector('#rerender-cb').checked = settings.rerenderBlocks
+
+
+}
+
+/**
+ * Applys UI state to scripting state
+ */
+function applyUIState() {
+
+	let newRedOffset = parseInt(document.querySelector('#red-offset').value)
+	let newRedRandom = parseInt(document.querySelector('#red-randomness').value)
+	let newGreenOffset = parseInt(document.querySelector('#green-offset').value)
+	let newGreenRandom = parseInt(document.querySelector('#green-randomness').value)
+	let newBlueOffset = parseInt(document.querySelector('#blue-offset').value)
+	let newBlueRandom = parseInt(document.querySelector('#blue-randomness').value)
+
+	settings.redValue = newRedOffset
+	settings.redMaxRandomness = newRedRandom
+	settings.greenValue = newGreenOffset
+	settings.greenMaxRandomness = newGreenRandom
+	settings.blueValue = newBlueOffset
+	settings.blueMaxRandomness = newBlueRandom
+
+
+}
+
 function generateBtnClick(mouseEvent) {
-  
-  let newRedOffset = parseInt(document.querySelector('#red-offset').value)
-  let newRedRandom = parseInt(document.querySelector('#red-randomness').value)
-  let newGreenOffset = parseInt(document.querySelector('#green-offset').value)
-  let newGreenRandom = parseInt(document.querySelector('#green-randomness').value)
-  let newBlueOffset = parseInt(document.querySelector('#blue-offset').value)
-  let newBlueRandom = parseInt(document.querySelector('#blue-randomness').value)
-
-  settings.redValue = newRedOffset
-  settings.redMaxRandomness = newRedRandom
-  settings.greenValue = newGreenOffset
-  settings.greenMaxRandomness = newGreenRandom
-  settings.blueValue = newBlueOffset
-  settings.blueMaxRandomness = newBlueRandom
-
-  // Generate Output
-  const {
-    blockHeight,
-    blockWidth,
-    totalRows,
-    totalColumns,
-  } = setup()
-
-  generate(blockHeight, blockWidth, totalRows, totalColumns)
-
+	applyUIState()
+  generate(setup())
 }
 
 function hideUIBtnClick(mouseEvent) {
@@ -200,55 +236,74 @@ function rerenderCbChangeHandler(changeEvent) {
   settings.rerenderBlocks = changeEvent.target.checked
 }
 
+/**
+ * Dynamically update setting
+ * NOTE: does not handle nested objects
+ */
+function updateSetting(key, value) {
+	settings[key] = value
+}
+
+function randomizeState() {
+	settings.redValue = random(COLOR_MAX)
+	settings.redMaxRandomness = random(COLOR_MAX)
+	settings.greenValue = random(COLOR_MAX)
+	settings.greenMaxRandomness = random(COLOR_MAX)
+	settings.blueValue = random(COLOR_MAX)
+	settings.blueMaxRandomness = random(COLOR_MAX)
+	applyScriptState()
+}
+
+function randomizeBtnClick() {
+	randomizeState()
+	generate(setup())
+}
+
 function setupUI() {
   document.querySelector("#generate").onclick = generateBtnClick
   document.querySelector("#hide").onclick = hideUIBtnClick
-  document.querySelector("#rerender-cb").onchange = rerenderCbChangeHandler 
+  document.querySelector("#randomBtn").onclick = randomizeBtnClick
+  document.querySelector("#rerender-cb").onchange = rerenderCbChangeHandler
+  document.querySelector("#red-offset").oninput = (e) => updateSetting('redValue', parseInt(e.target.value))
+  document.querySelector("#green-offset").oninput = (e) => updateSetting('greenValue', parseInt(e.target.value))
+  document.querySelector("#blue-offset").oninput = (e) => updateSetting('blueValue', parseInt(e.target.value))
+  document.querySelector("#auto-randomize-checkbox").oninput = (e) => updateSetting('autoRandomize', e.target.checked)
+
   wrapper.onclick = toggleUIVisibility
 }
 
 function toggleUIVisibility() {
 
   let UIDisplayStyle = document.querySelector(".ui-wrapper").style.display
-  document.querySelector(".ui-wrapper").style.display = ((UIDisplayStyle != 'none') ? 'none' : 'block')
+  document.querySelector(".ui-wrapper").style.display = ((UIDisplayStyle != 'none') ? 'none' : 'flex')
 
 }
 
+function clearScreen() {
+	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+}
+
 /**
- * Init application. Set block and total row/column settings and populate the 
+ * Init application. Set block and total row/column settings and populate the
  * canvas with blocks.
  */
 function main() {
+	applyScriptState()
 
 	rerenderInterval = setInterval(() => {
 
-    if(settings.rerenderBlocks) {
+		if(settings.rerenderBlocks) {
+			if (settings.autoRandomize) {
+				randomizeState()
+			}
+			clearScreen()
+			applyUIState()
+			generate(setup())
+		}
 
-      settings.blocksPerRow *= 1
-
-      const {
-        blockHeight,
-        blockWidth,
-        totalRows,
-        totalColumns,
-      } = setup()
-
-      generate(blockHeight, blockWidth, totalRows, totalColumns)
-
-    }
-    
 	}, settings.rerenderBlocksInterval);
 
-  // TODO: Put this into a function; it gets repeated several times
-  const {
-    blockHeight,
-    blockWidth,
-    totalRows,
-    totalColumns,
-  } = setup()
-
-  generate(blockHeight, blockWidth, totalRows, totalColumns)
-
+  generate(setup())
 }
 
 // Apply listeners to user interface (todo: update front-end based on internal state
